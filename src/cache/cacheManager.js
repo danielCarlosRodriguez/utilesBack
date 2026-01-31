@@ -51,6 +51,25 @@ function get(key) {
 }
 
 /**
+ * Get a value from cache even if expired (stale)
+ * @param {string} key - Cache key
+ * @returns {object|null} Cached item metadata or null if not found
+ */
+function getStale(key) {
+  const item = cache.get(key);
+  if (!item) {
+    return null;
+  }
+
+  return {
+    data: item.data,
+    expiry: item.expiry,
+    createdAt: item.createdAt,
+    isExpired: Date.now() > item.expiry
+  };
+}
+
+/**
  * Set a value in cache
  * @param {string} key - Cache key
  * @param {*} data - Data to cache
@@ -147,6 +166,7 @@ setInterval(cleanup, 10 * 60 * 1000);
 
 module.exports = {
   get,
+  getStale,
   set,
   del,
   clear,

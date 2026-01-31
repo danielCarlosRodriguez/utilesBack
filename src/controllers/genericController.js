@@ -185,6 +185,30 @@ async function getAll(req, res, next) {
 
     res.json(response);
   } catch (error) {
+    // If database fails, try to serve stale cache (best-effort)
+    const { database, collection } = req.params || {};
+    const cacheKey = database && collection
+      ? getCacheKey(database, collection, req.query)
+      : null;
+    const stale = cacheKey ? cache.getStale(cacheKey) : null;
+
+    if (stale && stale.data) {
+      return res.status(200).json({
+        ...stale.data,
+        meta: {
+          ...(stale.data.meta || {}),
+          source: 'cache-stale',
+          stale: true,
+          cache: {
+            createdAt: stale.createdAt,
+            expiry: new Date(stale.expiry).toISOString(),
+            isExpired: stale.isExpired
+          }
+        },
+        warning: 'Serving stale data due to database error'
+      });
+    }
+
     next(error);
   }
 }
