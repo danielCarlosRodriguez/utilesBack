@@ -5,6 +5,32 @@
 
 const { ObjectId } = require('mongodb');
 const { getCollection } = require('../config/database');
+const cache = require('../cache/cacheManager');
+
+/**
+ * Generate cache key from request
+ * @param {string} database - Database name
+ * @param {string} collection - Collection name
+ * @param {object} query - Query parameters
+ * @returns {string} Cache key
+ */
+function getCacheKey(database, collection, query = {}) {
+  const queryString = Object.keys(query).length > 0
+    ? ':' + JSON.stringify(query)
+    : '';
+  return `${database}/${collection}${queryString}`;
+}
+
+/**
+ * Invalidate cache for a collection
+ * @param {string} database - Database name
+ * @param {string} collection - Collection name
+ */
+function invalidateCollectionCache(database, collection) {
+  const pattern = `${database}/${collection}`;
+  const count = cache.invalidatePattern(pattern);
+  console.log(`Cache invalidated: ${pattern} (${count} entries)`);
+}
 
 /**
  * Validate if a string is a valid MongoDB ObjectId
@@ -103,6 +129,20 @@ function parseQueryOptions(query) {
 async function getAll(req, res, next) {
   try {
     const { database, collection } = req.params;
+    const cacheKey = getCacheKey(database, collection, req.query);
+
+    // Try to get from cache first
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        ...cached,
+        meta: {
+          ...cached.meta,
+          source: 'cache'
+        }
+      });
+    }
+
     const col = getCollection(database, collection);
     const options = parseQueryOptions(req.query);
 
@@ -128,16 +168,22 @@ async function getAll(req, res, next) {
     const documents = await cursor.toArray();
     const total = await col.countDocuments(options.filter);
 
-    res.json({
+    const response = {
       success: true,
       data: documents,
       meta: {
         total,
         count: documents.length,
         database,
-        collection
+        collection,
+        source: 'database'
       }
-    });
+    };
+
+    // Store in cache
+    cache.set(cacheKey, response);
+
+    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -204,6 +250,9 @@ async function create(req, res, next) {
     const col = getCollection(database, collection);
     const result = await col.insertOne(data);
 
+    // Invalidate cache for this collection
+    invalidateCollectionCache(database, collection);
+
     res.status(201).json({
       success: true,
       data: {
@@ -245,6 +294,9 @@ async function createMany(req, res, next) {
 
     const col = getCollection(database, collection);
     const result = await col.insertMany(documents);
+
+    // Invalidate cache for this collection
+    invalidateCollectionCache(database, collection);
 
     res.status(201).json({
       success: true,
@@ -301,6 +353,9 @@ async function update(req, res, next) {
       });
     }
 
+    // Invalidate cache for this collection
+    invalidateCollectionCache(database, collection);
+
     res.json({
       success: true,
       data: result,
@@ -353,6 +408,9 @@ async function patch(req, res, next) {
       });
     }
 
+    // Invalidate cache for this collection
+    invalidateCollectionCache(database, collection);
+
     res.json({
       success: true,
       data: result,
@@ -387,6 +445,9 @@ async function remove(req, res, next) {
       });
     }
 
+    // Invalidate cache for this collection
+    invalidateCollectionCache(database, collection);
+
     res.json({
       success: true,
       data: result,
@@ -414,6 +475,9 @@ async function removeMany(req, res, next) {
 
     const col = getCollection(database, collection);
     const result = await col.deleteMany(filter);
+
+    // Invalidate cache for this collection
+    invalidateCollectionCache(database, collection);
 
     res.json({
       success: true,

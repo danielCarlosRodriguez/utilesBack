@@ -6,6 +6,49 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/genericController');
+const cache = require('../cache/cacheManager');
+
+/**
+ * Cache Management Routes (must be before dynamic routes)
+ */
+
+// Get cache statistics
+router.get('/cache/stats', (req, res) => {
+  const stats = cache.getStats();
+  res.json({
+    success: true,
+    data: stats
+  });
+});
+
+// Clear all cache or by pattern
+router.post('/cache/clear', (req, res) => {
+  const { pattern } = req.body;
+
+  if (pattern) {
+    const count = cache.invalidatePattern(pattern);
+    res.json({
+      success: true,
+      message: `Cache cleared for pattern: ${pattern}`,
+      entriesCleared: count
+    });
+  } else {
+    cache.clear();
+    res.json({
+      success: true,
+      message: 'All cache cleared'
+    });
+  }
+});
+
+// Manual cache cleanup (remove expired entries)
+router.post('/cache/cleanup', (req, res) => {
+  const cleaned = cache.cleanup();
+  res.json({
+    success: true,
+    message: `Cleaned ${cleaned} expired entries`
+  });
+});
 
 /**
  * API Routes Pattern: /api/:database/:collection

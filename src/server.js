@@ -173,6 +173,22 @@ app.get('/api-docs', (req, res) => {
         path: '/api/:database/:collection/search',
         description: 'Advanced search with aggregation pipeline',
         body: '{ "pipeline": [...] }'
+      },
+      {
+        method: 'GET',
+        path: '/api/cache/stats',
+        description: 'Get cache statistics (entries, keys)'
+      },
+      {
+        method: 'POST',
+        path: '/api/cache/clear',
+        description: 'Clear cache (all or by pattern)',
+        body: '{ "pattern": "database/collection" } (optional)'
+      },
+      {
+        method: 'POST',
+        path: '/api/cache/cleanup',
+        description: 'Remove expired cache entries'
       }
     ],
     examples: {
@@ -182,7 +198,8 @@ app.get('/api-docs', (req, res) => {
       filterByCategory: 'GET /api/ecommerce/products?category=notebooks',
       paginateResults: 'GET /api/ecommerce/products?page=1&limit=10',
       sortResults: 'GET /api/ecommerce/products?sort=price:asc',
-      searchByName: 'GET /api/ecommerce/products?name=regex:pencil'
+      searchByName: 'GET /api/ecommerce/products?name=regex:pencil',
+      clearProductsCache: 'POST /api/cache/clear with { "pattern": "utiles/products" }'
     }
   });
 });
