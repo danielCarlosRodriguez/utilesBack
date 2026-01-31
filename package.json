@@ -1,0 +1,33 @@
+{
+  "name": "utiles-backend",
+  "version": "1.0.0",
+  "description": "Generic CRUD API for MongoDB collections - Utiles Ya ecommerce backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": [
+    "mongodb",
+    "crud",
+    "api",
+    "ecommerce",
+    "nodejs",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongodb": "^6.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
