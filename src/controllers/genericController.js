@@ -255,7 +255,18 @@ async function create(req, res, next) {
     const data = req.body;
 
     // Validate request body
-    if (!data || Object.keys(data).length === 0) {
+    const unsetFields = data?.$unset
+      || (Array.isArray(data?.__unset)
+        ? data.__unset.reduce((acc, field) => {
+          if (field) acc[field] = '';
+          return acc;
+        }, {})
+        : null);
+
+    if (data?.$unset) delete data.$unset;
+    if (data?.__unset) delete data.__unset;
+
+    if (!data || (Object.keys(data).length === 0 && !unsetFields)) {
       return res.status(400).json({
         success: false,
         error: 'Request body cannot be empty'
@@ -366,7 +377,9 @@ async function update(req, res, next) {
     const col = getCollection(database, collection);
     const result = await col.findOneAndUpdate(
       { _id: new ObjectId(id) },
-      { $set: data },
+      unsetFields
+        ? { $set: data, $unset: unsetFields }
+        : { $set: data },
       { returnDocument: 'after' }
     );
 
@@ -405,7 +418,18 @@ async function patch(req, res, next) {
       });
     }
 
-    if (!data || Object.keys(data).length === 0) {
+    const unsetFields = data?.$unset
+      || (Array.isArray(data?.__unset)
+        ? data.__unset.reduce((acc, field) => {
+          if (field) acc[field] = '';
+          return acc;
+        }, {})
+        : null);
+
+    if (data?.$unset) delete data.$unset;
+    if (data?.__unset) delete data.__unset;
+
+    if (!data || (Object.keys(data).length === 0 && !unsetFields)) {
       return res.status(400).json({
         success: false,
         error: 'Request body cannot be empty'
@@ -421,7 +445,9 @@ async function patch(req, res, next) {
     const col = getCollection(database, collection);
     const result = await col.findOneAndUpdate(
       { _id: new ObjectId(id) },
-      { $set: data },
+      unsetFields
+        ? { $set: data, $unset: unsetFields }
+        : { $set: data },
       { returnDocument: 'after' }
     );
 
