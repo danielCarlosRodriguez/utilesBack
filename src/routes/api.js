@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/genericController');
+const orderController = require('../controllers/orderController');
 const cache = require('../cache/cacheManager');
 
 /**
@@ -49,6 +50,18 @@ router.post('/cache/cleanup', (req, res) => {
     message: `Cleaned ${cleaned} expired entries`
   });
 });
+
+/**
+ * Order Status Routes
+ * Quick endpoints to change order status
+ *
+ * Examples:
+ * - GET /api/order/:id/confirmed  - Mark order as confirmed
+ * - GET /api/order/:id/pending    - Mark order as pending
+ * - GET /api/order/:id/shipped    - Mark order as shipped
+ * - GET /api/order/:id/cancelled  - Mark order as cancelled
+ */
+router.get('/order/:id/:status', orderController.updateStatus);
 
 /**
  * API Routes Pattern: /api/:database/:collection
