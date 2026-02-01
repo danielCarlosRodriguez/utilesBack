@@ -461,6 +461,19 @@ async function patch(req, res, next) {
     // Invalidate cache for this collection
     invalidateCollectionCache(database, collection);
 
+    // Emit Socket.io event for order status updates
+    if (collection === 'orders' && data.status) {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admin').emit('order:updated', {
+          orderId: id,
+          status: data.status,
+          order: result
+        });
+        console.log(`Socket event emitted: order:updated for ${id}`);
+      }
+    }
+
     res.json({
       success: true,
       data: result,

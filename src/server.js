@@ -10,6 +10,8 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const { connectToDatabase, closeConnection, isConnected } = require('./config/database');
 const apiRoutes = require('./routes/api');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
@@ -18,9 +20,45 @@ const requestLogger = require('./middleware/requestLogger');
 // Initialize Express app
 const app = express();
 
+// Create HTTP server for Socket.io
+const server = http.createServer(app);
+
 // Configuration
 const PORT = process.env.PORT || 8000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Initialize Socket.io
+const io = new Server(server, {
+  cors: {
+    origin: NODE_ENV === 'development' ? '*' : [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'https://utiles-ya.netlify.app',
+      process.env.FRONTEND_URL
+    ].filter(Boolean),
+    methods: ['GET', 'POST']
+  }
+});
+
+// Make io available to routes
+app.set('io', io);
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+
+  // Join admin room
+  socket.on('join:admin', () => {
+    socket.join('admin');
+    console.log(`Socket ${socket.id} joined admin room`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+  });
+});
 
 // CORS Configuration
 const corsOptions = {
@@ -227,8 +265,8 @@ async function startServer() {
     // Connect to MongoDB
     await connectToDatabase();
 
-    // Start Express server
-    app.listen(PORT, () => {
+    // Start HTTP server (with Socket.io)
+    server.listen(PORT, () => {
       console.log(`
 ========================================
   Utiles Backend API Server
@@ -238,6 +276,7 @@ async function startServer() {
   URL: http://localhost:${PORT}
   API: http://localhost:${PORT}/api/:database/:collection
   Docs: http://localhost:${PORT}/api-docs
+  Socket.io: Enabled
 ========================================
       `);
     });
