@@ -10,7 +10,7 @@ const cache = require('../cache/cacheManager');
 const DATABASE = 'utiles';
 const COLLECTION = 'orders';
 
-const VALID_STATUSES = ['pending', 'confirmed', 'shipped', 'cancelled'];
+const VALID_STATUSES = ['pending', 'ready', 'shipped', 'delivered', 'cancelled'];
 
 /**
  * Update order status
@@ -19,6 +19,7 @@ const VALID_STATUSES = ['pending', 'confirmed', 'shipped', 'cancelled'];
 async function updateStatus(req, res, next) {
   try {
     const { id, status } = req.params;
+    const { device } = req.query;
 
     // Validate status
     if (!VALID_STATUSES.includes(status)) {
@@ -36,15 +37,22 @@ async function updateStatus(req, res, next) {
       });
     }
 
+    // Build update object
+    const updateData = {
+      status,
+      updatedAt: new Date()
+    };
+
+    // Add delivery info if status is delivered and device is provided
+    if (status === 'delivered' && device) {
+      updateData.deliveredBy = device;
+      updateData.deliveredAt = new Date();
+    }
+
     const col = getCollection(DATABASE, COLLECTION);
     const result = await col.findOneAndUpdate(
       { _id: new ObjectId(id) },
-      {
-        $set: {
-          status,
-          updatedAt: new Date()
-        }
-      },
+      { $set: updateData },
       { returnDocument: 'after' }
     );
 
