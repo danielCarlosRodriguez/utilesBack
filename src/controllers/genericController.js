@@ -6,6 +6,7 @@
 const { ObjectId } = require('mongodb');
 const { getCollection } = require('../config/database');
 const cache = require('../cache/cacheManager');
+const { handleStockOnStatusChange } = require('./orderController');
 
 /**
  * Generate cache key from request
@@ -368,6 +369,18 @@ async function update(req, res, next) {
       });
     }
 
+    // Handle $unset / __unset fields
+    const unsetFields = data?.$unset
+      || (Array.isArray(data?.__unset)
+        ? data.__unset.reduce((acc, field) => {
+          if (field) acc[field] = '';
+          return acc;
+        }, {})
+        : null);
+
+    if (data?.$unset) delete data.$unset;
+    if (data?.__unset) delete data.__unset;
+
     // Remove _id from update data
     delete data._id;
 
@@ -375,6 +388,18 @@ async function update(req, res, next) {
     data.updatedAt = new Date();
 
     const col = getCollection(database, collection);
+
+    // Handle stock changes for order status updates
+    if (collection === 'orders' && data.status) {
+      const currentOrder = await col.findOne({ _id: new ObjectId(id) });
+      if (currentOrder) {
+        const stockUpdate = await handleStockOnStatusChange(currentOrder, data.status);
+        if (stockUpdate) {
+          Object.assign(data, stockUpdate);
+        }
+      }
+    }
+
     const result = await col.findOneAndUpdate(
       { _id: new ObjectId(id) },
       unsetFields
@@ -443,6 +468,18 @@ async function patch(req, res, next) {
     data.updatedAt = new Date();
 
     const col = getCollection(database, collection);
+
+    // Handle stock changes for order status updates
+    if (collection === 'orders' && data.status) {
+      const currentOrder = await col.findOne({ _id: new ObjectId(id) });
+      if (currentOrder) {
+        const stockUpdate = await handleStockOnStatusChange(currentOrder, data.status);
+        if (stockUpdate) {
+          Object.assign(data, stockUpdate);
+        }
+      }
+    }
+
     const result = await col.findOneAndUpdate(
       { _id: new ObjectId(id) },
       unsetFields
