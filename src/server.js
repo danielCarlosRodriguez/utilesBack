@@ -14,6 +14,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { connectToDatabase, closeConnection, isConnected } = require('./config/database');
 const apiRoutes = require('./routes/api');
+const uploadRoutes = require('./routes/uploadRoutes');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const requestLogger = require('./middleware/requestLogger');
 
@@ -244,6 +245,7 @@ app.get('/api-docs', (req, res) => {
 
 // API Routes
 app.use('/api', apiRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Error Handlers
 app.use(notFoundHandler);
