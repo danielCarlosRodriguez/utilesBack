@@ -86,21 +86,29 @@ async function restoreStock(order) {
  * @returns {{ stockDescontado: boolean } | null}
  */
 async function handleStockOnStatusChange(order, newStatus) {
-  console.log(`[Stock] Cambio de estado - Orden #${order.orderId || order._id}: "${order.status}" → "${newStatus}" (stockDescontado: ${order.stockDescontado})`);
+  const orderId = order.orderId || order._id;
 
   if (STOCK_REQUIRED_STATUSES.includes(newStatus)) {
     const did = await decrementStock(order);
-    if (did) return { stockDescontado: true };
+    if (did) {
+      console.log(`Orden #${orderId}: "${order.status}" → "${newStatus}" → stockDescontado: true`);
+      return { stockDescontado: true };
+    }
+    console.log(`Orden #${orderId}: "${order.status}" → "${newStatus}" → stockDescontado: sin cambio (ya estaba descontado)`);
     return null;
   }
 
   if (newStatus === 'cancelled') {
     const did = await restoreStock(order);
-    if (did) return { stockDescontado: false };
+    if (did) {
+      console.log(`Orden #${orderId}: "${order.status}" → "${newStatus}" → stockDescontado: false`);
+      return { stockDescontado: false };
+    }
+    console.log(`Orden #${orderId}: "${order.status}" → "${newStatus}" → stockDescontado: sin cambio (no estaba descontado)`);
     return null;
   }
 
-  console.log(`[Stock] Estado "${newStatus}" no requiere cambio de stock`);
+  console.log(`Orden #${orderId}: "${order.status}" → "${newStatus}" → stock: no aplica`);
   return null;
 }
 
