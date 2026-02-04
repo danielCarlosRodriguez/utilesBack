@@ -21,11 +21,15 @@ const STOCK_REQUIRED_STATUSES = ['ready', 'shipped', 'delivered'];
  * Solo se ejecuta si stockDescontado !== true
  */
 async function decrementStock(order) {
-  if (order.stockDescontado === true) return false;
+  if (order.stockDescontado === true) {
+    console.log(`[Stock] Orden #${order.orderId || order._id}: stock ya descontado, se omite`);
+    return false;
+  }
   if (!order.items || order.items.length === 0) return false;
 
   const productsCol = getCollection(DATABASE, PRODUCTS_COLLECTION);
 
+  console.log(`[Stock] DESCONTANDO stock - Orden #${order.orderId || order._id}:`);
   for (const item of order.items) {
     const refid = item.refid;
     const quantity = Number(item.quantity) || 0;
@@ -35,8 +39,10 @@ async function decrementStock(order) {
       { refid },
       { $inc: { stock: -quantity } }
     );
+    console.log(`  - refid: ${refid} | "${item.title || item.name || ''}" | cantidad: -${quantity}`);
   }
 
+  console.log(`[Stock] Descuento completado para orden #${order.orderId || order._id}`);
   cache.invalidatePattern(`${DATABASE}/${PRODUCTS_COLLECTION}`);
   return true;
 }
@@ -46,11 +52,15 @@ async function decrementStock(order) {
  * Solo se ejecuta si stockDescontado === true
  */
 async function restoreStock(order) {
-  if (order.stockDescontado !== true) return false;
+  if (order.stockDescontado !== true) {
+    console.log(`[Stock] Orden #${order.orderId || order._id}: stock no estaba descontado, no se restaura`);
+    return false;
+  }
   if (!order.items || order.items.length === 0) return false;
 
   const productsCol = getCollection(DATABASE, PRODUCTS_COLLECTION);
 
+  console.log(`[Stock] RESTAURANDO stock - Orden #${order.orderId || order._id}:`);
   for (const item of order.items) {
     const refid = item.refid;
     const quantity = Number(item.quantity) || 0;
@@ -60,8 +70,10 @@ async function restoreStock(order) {
       { refid },
       { $inc: { stock: quantity } }
     );
+    console.log(`  - refid: ${refid} | "${item.title || item.name || ''}" | cantidad: +${quantity}`);
   }
 
+  console.log(`[Stock] Restauración completada para orden #${order.orderId || order._id}`);
   cache.invalidatePattern(`${DATABASE}/${PRODUCTS_COLLECTION}`);
   return true;
 }
@@ -74,6 +86,8 @@ async function restoreStock(order) {
  * @returns {{ stockDescontado: boolean } | null}
  */
 async function handleStockOnStatusChange(order, newStatus) {
+  console.log(`[Stock] Cambio de estado - Orden #${order.orderId || order._id}: "${order.status}" → "${newStatus}" (stockDescontado: ${order.stockDescontado})`);
+
   if (STOCK_REQUIRED_STATUSES.includes(newStatus)) {
     const did = await decrementStock(order);
     if (did) return { stockDescontado: true };
@@ -86,6 +100,7 @@ async function handleStockOnStatusChange(order, newStatus) {
     return null;
   }
 
+  console.log(`[Stock] Estado "${newStatus}" no requiere cambio de stock`);
   return null;
 }
 
