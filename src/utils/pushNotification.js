@@ -74,6 +74,7 @@ async function sendPushToAll(message) {
  * @param {object} orderData - The created order document
  */
 async function sendNewOrderNotification(orderData) {
+  console.log('Push: sendNewOrderNotification called', { _id: orderData._id, orderNumber: orderData.orderNumber, orderId: orderData.orderId });
   const orderNumber = orderData.orderNumber || orderData.orderId || 'nueva';
   const customerName = orderData.customerName || 'Cliente';
   const total = orderData.totals?.total || orderData.total || 0;

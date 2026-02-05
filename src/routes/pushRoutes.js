@@ -17,8 +17,10 @@ const COLLECTION = 'pushTokens';
 router.post('/register', async (req, res) => {
   try {
     const { token, deviceName } = req.body;
+    console.log('Push Register: Received request', { token: token?.substring(0, 30) + '...', deviceName });
 
     if (!token || !token.startsWith('ExponentPushToken[')) {
+      console.log('Push Register: Invalid token format', { token });
       return res.status(400).json({
         success: false,
         error: 'Invalid Expo push token'
@@ -27,7 +29,7 @@ router.post('/register', async (req, res) => {
 
     const col = getCollection(DATABASE, COLLECTION);
 
-    await col.updateOne(
+    const result = await col.updateOne(
       { token },
       {
         $set: {
@@ -41,13 +43,14 @@ router.post('/register', async (req, res) => {
       },
       { upsert: true }
     );
+    console.log('Push Register: MongoDB result', { matched: result.matchedCount, upserted: result.upsertedCount });
 
     res.json({
       success: true,
       message: 'Push token registered'
     });
   } catch (error) {
-    console.error('Error registering push token:', error);
+    console.error('Push Register: Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to register push token'
