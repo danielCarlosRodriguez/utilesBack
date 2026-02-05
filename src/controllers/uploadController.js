@@ -21,6 +21,8 @@ async function uploadImage(req, res) {
       {
         folder: 'utilesya/products',
         public_id: originalName,
+        use_filename: true,
+        unique_filename: false,
         resource_type: 'image',
         overwrite: true
       },
@@ -89,6 +91,8 @@ async function uploadMultipleImages(req, res) {
           {
             folder: 'utilesya/products',
             public_id: originalName,
+            use_filename: true,
+            unique_filename: false,
             resource_type: 'image',
             overwrite: true
           },
