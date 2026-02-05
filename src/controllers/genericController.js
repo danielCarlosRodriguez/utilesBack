@@ -7,6 +7,7 @@ const { ObjectId } = require('mongodb');
 const { getCollection } = require('../config/database');
 const cache = require('../cache/cacheManager');
 const { handleStockOnStatusChange } = require('./orderController');
+const { sendNewOrderNotification } = require('../utils/pushNotification');
 
 /**
  * Generate cache key from request
@@ -289,12 +290,18 @@ async function create(req, res, next) {
     // Invalidate cache for this collection
     invalidateCollectionCache(database, collection);
 
+    const createdDoc = { _id: result.insertedId, ...data };
+
+    // Send push notification for new orders
+    if (collection === 'orders') {
+      sendNewOrderNotification(createdDoc).catch(err =>
+        console.error('Error sending push notification:', err)
+      );
+    }
+
     res.status(201).json({
       success: true,
-      data: {
-        _id: result.insertedId,
-        ...data
-      },
+      data: createdDoc,
       message: 'Document created successfully'
     });
   } catch (error) {
