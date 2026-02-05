@@ -1,5 +1,6 @@
 const cloudinary = require('../config/cloudinary');
 const { Readable } = require('stream');
+const path = require('path');
 
 /**
  * Subir una imagen a Cloudinary
@@ -14,22 +15,23 @@ async function uploadImage(req, res) {
       });
     }
 
+    const originalName = path.parse(req.file.originalname).name;
+
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: 'utilesya/products',
+        public_id: originalName,
         resource_type: 'image',
-        transformation: [
-          { width: 1000, height: 1000, crop: 'limit' },
-          { quality: 'auto' },
-          { fetch_format: 'auto' }
-        ]
+        overwrite: true
       },
       (error, result) => {
         if (error) {
-          console.error('Error al subir imagen a Cloudinary:', error);
+          console.error('Error al subir imagen a Cloudinary:', error.message || error);
+          console.error('Cloudinary error details:', JSON.stringify(error, null, 2));
           return res.status(500).json({
             success: false,
-            message: 'Error al subir la imagen'
+            message: 'Error al subir la imagen',
+            error: error.message || 'Error desconocido de Cloudinary'
           });
         }
 
@@ -81,15 +83,14 @@ async function uploadMultipleImages(req, res) {
 
     const uploadPromises = req.files.map(file => {
       return new Promise((resolve, reject) => {
+        const originalName = path.parse(file.originalname).name;
+
         const stream = cloudinary.uploader.upload_stream(
           {
             folder: 'utilesya/products',
+            public_id: originalName,
             resource_type: 'image',
-            transformation: [
-              { width: 1000, height: 1000, crop: 'limit' },
-              { quality: 'auto' },
-              { fetch_format: 'auto' }
-            ]
+            overwrite: true
           },
           (error, result) => {
             if (error) {
