@@ -244,8 +244,8 @@ app.get('/api-docs', (req, res) => {
 });
 
 // API Routes
-app.use('/api', apiRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api', apiRoutes);
 
 // Error Handlers
 app.use(notFoundHandler);
