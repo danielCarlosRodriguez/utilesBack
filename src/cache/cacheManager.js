@@ -12,6 +12,7 @@ const DEFAULT_TTL = 5 * 60 * 1000;
 // TTL configuration by collection pattern
 const TTL_CONFIG = {
   'utiles/products': 10 * 60 * 1000,  // 10 minutes for products
+  'analytics:': 60 * 1000, // 60 seconds for analytics
   'default': DEFAULT_TTL
 };
 
