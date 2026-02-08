@@ -52,5 +52,5 @@ temp/
 .claude/
 borrador/
 CLAUDE.md
-src\config\ga.json
-src\config\OAuth.json
+src/config/ga.json
+src/config/OAuth.json
