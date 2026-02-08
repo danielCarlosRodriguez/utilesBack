@@ -2,15 +2,20 @@ const cache = require('../cache/cacheManager');
 const { createAnalyticsClient } = require('../config/analytics');
 
 const VALID_PERIODS = ['week', 'month', 'year'];
+const PERIOD_DAYS = {
+  week: 7,
+  month: 30,
+  year: 365
+};
 
-function getDateRange(period) {
-  if (period === 'year') {
-    return { startDate: '365daysAgo', endDate: 'today' };
+function getDateRange(period, offsetPeriods = 0) {
+  const days = PERIOD_DAYS[period] || 7;
+  if (offsetPeriods === 0) {
+    return { startDate: `${days}daysAgo`, endDate: 'today' };
   }
-  if (period === 'month') {
-    return { startDate: '30daysAgo', endDate: 'today' };
-  }
-  return { startDate: '7daysAgo', endDate: 'today' };
+  const startDaysAgo = days * (offsetPeriods + 1);
+  const endDaysAgo = days * offsetPeriods + 1;
+  return { startDate: `${startDaysAgo}daysAgo`, endDate: `${endDaysAgo}daysAgo` };
 }
 
 function formatDateLabel(dateStr) {
@@ -21,8 +26,8 @@ function formatDateLabel(dateStr) {
   return `${day}/${month}/${year}`;
 }
 
-async function runSummaryReport(client, propertyId, period) {
-  const { startDate, endDate } = getDateRange(period);
+async function runSummaryReport(client, propertyId, period, offsetPeriods = 0) {
+  const { startDate, endDate } = getDateRange(period, offsetPeriods);
   const [response] = await client.runReport({
     property: `properties/${propertyId}`,
     dateRanges: [{ startDate, endDate }],
@@ -49,8 +54,8 @@ async function runSummaryReport(client, propertyId, period) {
   };
 }
 
-async function runDailyReport(client, propertyId, period) {
-  const { startDate, endDate } = getDateRange(period);
+async function runDailyReport(client, propertyId, period, offsetPeriods = 0) {
+  const { startDate, endDate } = getDateRange(period, offsetPeriods);
   const [response] = await client.runReport({
     property: `properties/${propertyId}`,
     dateRanges: [{ startDate, endDate }],
@@ -79,7 +84,8 @@ async function getAnalytics(req, res) {
   const period = VALID_PERIODS.includes(req.query.period)
     ? req.query.period
     : 'week';
-  const cacheKey = `analytics:${period}`;
+  const compare = req.query.compare === 'prev';
+  const cacheKey = compare ? `analytics:${period}:prev` : `analytics:${period}`;
 
   const cached = cache.get(cacheKey);
   if (cached) {
@@ -95,8 +101,9 @@ async function getAnalytics(req, res) {
   }
 
   try {
-    const summary = await runSummaryReport(client, propertyId, period);
-    const daily = await runDailyReport(client, propertyId, period);
+    const offsetPeriods = compare ? 1 : 0;
+    const summary = await runSummaryReport(client, propertyId, period, offsetPeriods);
+    const daily = await runDailyReport(client, propertyId, period, offsetPeriods);
     const payload = { period, summary, daily };
     cache.set(cacheKey, payload);
     return res.json({ success: true, data: payload, cached: false });
